@@ -5,13 +5,15 @@
    				:scan-to-strings
                 :all-matches-as-strings
    :split   
-                :regex-replace) 
+                :regex-replace)
   (:export
    :same-domain
    :get-arguments
    :arguments
    :arguments-values
-   :join-with-main))
+   :join-with-main
+   :prepare-url
+   :get-last))
 
 (in-package :stepster.urlworks)
 
@@ -26,7 +28,28 @@
         t
         nil))
 
-;(defun init-url () )
+(defun starts-with (string x)
+    (if (string-equal string x :end1 (length x))
+        t
+        nil))
+
+(defun prepare-url (main url)
+    (cond
+      ((relative url)
+       (http-join (join-with-main main url) :https t))
+;      ((starts-with url "//")
+;       (concatenate 'string "http:" url))
+      (t (http-join url))))
+
+(defun http-join (url &key (https nil))
+    (let ((https-url (concatenate 'string "https://" url))
+          (http-url (concatenate 'string "http://" url)))
+        (cond ((substp "http" url) url)            
+              (https (handler-case (progn
+                                       (dex:get https-url)
+                                       https-url)
+                       (error () http-url)))
+              (t http-url))))        
 
 (defun relative (url)
     (substp "^[/]?[a-zA-Z/]*[.]?[a-zA-Z]*$" url))
@@ -37,13 +60,13 @@
               collect item)))
 
 (defun get-last (url)
-    (nth-value 1 (scan-to-strings "(.+)(\/.+)$" url)))
+    (nth-value 1 (scan-to-strings "(.+\/)(.+)$" url)))
 
 (defun get-main (url)
     (nth-value 1 (scan-to-strings "(.+[.][a-zA-Z0-9]+?)([/]|$)(.*)" url)))
 
-(defun join-with-main (url action)
-    (concatenate 'string (aref (get-main url) 0) action))
+(defun join-with-main (main path)
+    (concatenate 'string (regex-group 0 (get-main main)) path))
 
 (defun get-arguments (url)
     (let ((parts (all-matches-as-strings "([a-zA-Z_%0-9-]*?)=.*?(&|$)" url)))
@@ -55,8 +78,15 @@
 (defun arguments-values (list)
     (mapcar #'cadr (get-arguments list)))
 
+(defun make-arguments-string (url data)
+    (concatenate 'string url
+                 (concatenate 'string "?" (arguments-string data))))
+
+(defun arguments-string (data)
+    (format nil "~{~{~a=~a~}~^&~}" data))
+
 (defun replace-arguments (url value)
-    (format nil "~{~{~a=~a~}~^&~}" 
+    (arguments-string 
            (loop for arg in (get-arguments url)
                    collect (list (car arg) value))))
 
