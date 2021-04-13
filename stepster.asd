@@ -1,5 +1,5 @@
 (defsystem "stepster"
-  :version "0.0.0"
+  :version "0.0.7"
   :author "Walpurgisnatch"
   :license "MIT"
   :depends-on ("dexador"
@@ -9,5 +9,5 @@
   :components ((:module "src"
                 :components
                 ((:file "stepster"))))
-  :description ""
+  :description "Web tool library"
   :in-order-to ((test-op (test-op "stepster/tests"))))
