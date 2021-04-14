@@ -4,8 +4,12 @@
   (:import-from	:cl-ppcre
    				:scan-to-strings
                 :all-matches-as-strings
-   :split   
+   				:split   
                 :regex-replace)
+  (:import-from :stepster.utils
+   				:substp
+                :string-starts-with
+                :regex-group)
   (:export
    :same-domain
    :get-arguments
@@ -17,28 +21,15 @@
 
 (in-package :stepster.urlworks)
 
-(defun setf-assoc (field key value)
-    (setf (cdr (assoc key field)) value))
 
-(defun regex-group (group vector)
-    (aref vector group))
+(defun same-domain (url domain)
+    (or (substp domain url)
+        (relative url)))
 
-(defun substp (regex string)
-    (if (scan-to-strings regex string)
-        t
-        nil))
-
-(defun starts-with (string x)
-    (if (string-equal string x :end1 (length x))
-        t
-        nil))
-
-(defun prepare-url (main url)
+(defun prepare-url (url &optional main)
     (cond
-      ((relative url)
+      ((and main (relative url))
        (http-join (join-with-main main url) :https t))
-;      ((starts-with url "//")
-;       (concatenate 'string "http:" url))
       (t (http-join url))))
 
 (defun http-join (url &key (https nil))
@@ -95,7 +86,3 @@
            (arg-value
              (cadr (assoc (string arg) args :test #'string-equal))))
         (regex-replace arg-value url (string value))))
-
-(defun same-domain (url domain)
-    (or (substp domain url)
-        (relative url)))
