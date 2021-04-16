@@ -10,14 +10,16 @@
   (:import-from :stepster.utils
    :print-error
                 :substp
-                :regex-group)
+   :regex-group
+   :pathname-as-directory)
   (:export
    :parse-url
    :get-root-node
    :attribute
    :collect-from
    :submit-form
-   :download
+   :download-file
+   :download-page
    :download-all-images))
 
 (in-package :stepster.parser)
@@ -26,30 +28,19 @@
 (defparameter *cookie-jar* (cl-cookie:make-cookie-jar))
 
 
-(defmacro parse-url (url &body body)
+(defmacro with-get (url &body body)
     `(handler-case
-         (multiple-value-bind (response-body status-code response-headers response-url)
+         (multiple-value-bind (response-body status-code response-headers quri-uri)
              (dex:get (prepare-url ,url) :cookie-jar *cookie-jar*)
-             (declare (ignorable status-code response-headers response-url))
-             (let ((root-node (plump:parse response-body)))
+             (declare (ignorable status-code response-headers quri-uri))
+             (let ((root-node (plump:parse response-body))
+                   (response-url (quri:render-uri quri-uri)))
                  (declare (ignorable root-node))
                  (progn ,@body)))
        (error (e) (print-error e))))
 
-(defun safe-get (url)
-    (handler-case (dex:get (prepare-url url)
-                           :cookie-jar *cookie-jar*)
-      (error (e) (print-error e))))
-
-(defun safe-post (url &rest data)
-    (handler-case
-        (dex:post url
-                  :cookie-jar *cookie-jar*
-                  :content data)
-      (error (e) (print-error e))))
-
 (defun submit-form (url form-name &rest data-list &key (default nil))
-    (let* ((form (extract-forms get-root-node form-name))
+    (let* ((form (extract-forms (get-root-node url) form-name))
            (action (join-with-main url (attribute form 'action)))
            (method (attribute form 'method))
            (data (fill-form-with form data-list default)))
@@ -79,26 +70,34 @@
                         :test #'plump:text-node-p)
         (apply #'concatenate 'string (nreverse text-list))))         
         
-(defun download (url filename)
+(defun download-file (url filename)
     (let ((response (safe-get url)))
         (with-open-file (stream filename :direction :output :element-type '(unsigned-byte 8) :if-exists :supersede)
             (when response 
                 (loop for byte across response
                       do (write-byte byte stream))))))
 
+(defun download-page (url filename)
+    (let ((response (safe-get url)))
+        (with-open-file (stream filename :direction :output :if-exists :supersede)
+            (when response 
+                (write-string response stream)))))
+
 (defun download-all-images (url dir)
     (let ((images (collect-from (get-root-node url) 'img 'src)))
+        (setf dir (namestring (ensure-directories-exist (pathname-as-directory dir))))
         (loop for image in images
               when image
-                do (handler-case (progn
-                                     (let ((filename (concatenate 'string dir (aref (get-last image) 1))))
-                                         (download image filename)))
+                do (handler-case
+                       (let ((filename (concatenate 'string dir (aref (get-last image) 1))))
+                                         
+                           (download image filename))
                      (error (e) (format t "~&Error while downloading image [~a]~%~a~%" image e))))))
 
 (defun get-root-node (url)
     (plump:parse (dex:get url :cookie-jar *cookie-jar*)))
 
-(defun status-code (url)
+(defun check-status (url)
     (nth-value 1 (dex:get url)))
 
 (defun attribute (node attr)
@@ -131,7 +130,7 @@
     (collect-from root-node 'a 'href))
 
 (defun extract-attributes-names (root-node)
-    (collect-from root-node '(form input) 'name)
+    (collect-from root-node '(form input) 'name))
 
 (defun extract-forms (root-node &optional name)
     (let ((forms (collect-from root-node 'form)))
@@ -140,3 +139,15 @@
                   when (substp name (attribute form 'name))
                     return form)
             forms)))
+
+(defun safe-get (url)
+    (handler-case (dex:get (prepare-url url)
+                           :cookie-jar *cookie-jar*)
+      (error (e) (print-error e))))
+
+(defun safe-post (url &rest data)
+    (handler-case
+        (dex:post url
+                  :cookie-jar *cookie-jar*
+                  :content data)
+      (error (e) (print-error e))))

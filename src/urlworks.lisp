@@ -29,7 +29,8 @@
 (defun prepare-url (url &optional main)
     (cond
       ((and main (relative url))
-       (http-join (join-with-main main url) :https t))
+       (http-join (join-with-main main url)))
+      ((string-starts-with url "//") url)
       (t (http-join url))))
 
 (defun http-join (url &key (https nil))
