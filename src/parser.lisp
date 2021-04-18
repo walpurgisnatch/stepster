@@ -2,19 +2,19 @@
 (defpackage stepster.parser
   (:use :cl)
   (:import-from	:stepster.urlworks
-   				:same-domain
+   :same-domain
                 :join-with-main
-   				:prepare-url
+   :prepare-url
                 :make-arguments-string
    :get-last)
   (:import-from :stepster.utils
    :print-error
                 :substp
    :regex-group
-   :pathname-as-directory)
+                :pathname-as-directory)
   (:export
    :parse-url
-   :get-root-node
+   :parse
    :attribute
    :collect-from
    :submit-form
@@ -39,8 +39,31 @@
                  (progn ,@body)))
        (error (e) (print-error e))))
 
+(defmacro for-js (page &body body)
+    `(let ((srcs (extract-js-src (parse ,page))))
+         (loop for src in srcs do
+           (let ((js-file (babel:octets-to-string (safe-get src) :encoding :utf-8)))
+               (progn ,@body)))))
+
+(defun parse (url)
+    (if (stringp url)
+        (plump:parse (safe-get url))
+        url))    
+
+(defun safe-get (url)
+    (handler-case (dex:get (prepare-url url)
+                           :cookie-jar *cookie-jar*)
+      (error (e) (print-error e))))
+
+(defun safe-post (url &rest data)
+    (handler-case
+        (dex:post url
+                  :cookie-jar *cookie-jar*
+                  :content data)
+      (error (e) (print-error e))))
+
 (defun submit-form (url form-name &rest data-list &key (default nil))
-    (let* ((form (extract-forms (get-root-node url) form-name))
+    (let* ((form (extract-forms (parse url) form-name))
            (action (join-with-main url (attribute form 'action)))
            (method (attribute form 'method))
            (data (fill-form-with form data-list default)))
@@ -55,7 +78,7 @@
                 collect (set-input-data input data default))))
 
 (defun crawl-for-urls (url)
-    (let* ((root-node (get-root-node url))
+    (let* ((root-node (parse url))
            (hrefs (extract-urls root-node)))
         (loop for href in hrefs
               do (when (same-domain href url)
@@ -84,24 +107,14 @@
                 (write-string response stream)))))
 
 (defun download-all-images (url dir)
-    (let ((images (collect-from (get-root-node url) 'img 'src)))
+    (let ((images (collect-from (parse url) 'img 'src)))
         (setf dir (namestring (ensure-directories-exist (pathname-as-directory dir))))
         (loop for image in images
               when image
                 do (handler-case
                        (let ((filename (concatenate 'string dir (aref (get-last image) 1))))
-                                         
-                           (download image filename))
+                           (download-file image filename))
                      (error (e) (format t "~&Error while downloading image [~a]~%~a~%" image e))))))
-
-(defun get-root-node (url)
-    (plump:parse (dex:get url :cookie-jar *cookie-jar*)))
-
-(defun check-status (url)
-    (nth-value 1 (dex:get url)))
-
-(defun attribute (node attr)
-    (plump:attribute node (string attr)))
 
 (defun set-input-data (input data default)
     (let ((name (attribute input 'name)))
@@ -112,12 +125,6 @@
                   else do (cons name default))
             (cons name data))))
 
-(defun collect-from (parent-node selectors &optional (attr nil))
-    (loop for node across (clss:select (nodes-to-string selectors) parent-node)
-          collect (if attr
-                      (attribute node attr)
-                      node)))
-
 (defun nodes-to-string (list)
     (if (consp list)
         (string-right-trim " "
@@ -126,28 +133,29 @@
                             collect (concatenate 'string (string word) " "))))
         (string list)))
 
-(defun extract-urls (root-node)
-    (collect-from root-node 'a 'href))
+(defun attribute (node attr)
+    (plump:attribute node (string attr)))
 
-(defun extract-attributes-names (root-node)
-    (collect-from root-node '(form input) 'name))
+(defun collect-from (parent-node selectors &optional (attr nil))
+    (loop for node across (clss:select (nodes-to-string selectors) parent-node)
+          collect (if attr
+                      (attribute node attr)
+                      node)))
 
-(defun extract-forms (root-node &optional name)
-    (let ((forms (collect-from root-node 'form)))
+(defun extract-urls (page)
+    (collect-from page 'a 'href))
+
+(defun extract-attributes-names (page)
+    (collect-from page '(form input) 'name))
+
+(defun extract-js-src (page)
+    (collect-from page 'script 'src))
+
+(defun extract-forms (page &optional name)
+    (let ((forms (collect-from page 'form)))
         (if name
             (loop for form in forms
                   when (substp name (attribute form 'name))
                     return form)
             forms)))
 
-(defun safe-get (url)
-    (handler-case (dex:get (prepare-url url)
-                           :cookie-jar *cookie-jar*)
-      (error (e) (print-error e))))
-
-(defun safe-post (url &rest data)
-    (handler-case
-        (dex:post url
-                  :cookie-jar *cookie-jar*
-                  :content data)
-      (error (e) (print-error e))))
