@@ -2,25 +2,27 @@
 (defpackage stepster.parser
   (:use :cl)
   (:import-from	:stepster.urlworks
-   :same-domain
+                :same-domain
                 :join-with-main
-   :prepare-url
+                :prepare-url
                 :make-arguments-string
-   :get-last)
+                :get-last)
   (:import-from :stepster.utils
-   :print-error
+                :print-error
                 :substp
-   :regex-group
+                :equal-getf
+                :regex-group
                 :pathname-as-directory)
   (:export
-   :parse-url
    :parse
    :attribute
    :collect-from
    :submit-form
    :download-file
    :download-page
-   :download-all-images))
+   :download-all-images
+   :fill-form
+   :extract-forms))
 
 (in-package :stepster.parser)
 
@@ -55,35 +57,36 @@
                            :cookie-jar *cookie-jar*)
       (error (e) (print-error e))))
 
-(defun safe-post (url &rest data)
+(defun safe-post (url data)
     (handler-case
         (dex:post url
                   :cookie-jar *cookie-jar*
                   :content data)
       (error (e) (print-error e))))
 
-(defun submit-form (url form-name &rest data-list &key (default nil))
-    (let* ((form (extract-forms (parse url) form-name))
+(defun submit-form (url &key form data)
+    (let* ((form (extract-forms (parse url) (when form form)))
            (action (join-with-main url (attribute form 'action)))
            (method (attribute form 'method))
-           (data (fill-form-with form data-list default)))
+           (data (fill-form form data)))
         (if (string-equal method "post")
             (safe-post action data)
             (safe-get (make-arguments-string action data)))))
 
-(defun fill-form-with (form data default)
+(defun fill-form (form data)
     (let ((inputs (collect-from form 'input)))
-        (loop for input in inputs
-              when (string= (attribute input 'type) "text")
-                collect (set-input-data input data default))))
+        (loop with input-name for input in inputs
+              collect (cons (setf input-name (attribute input 'name))
+                            (or (equal-getf data input-name)
+                                (attribute input 'value)
+                                "")))))
 
 (defun crawl-for-urls (url)
     (let* ((root-node (parse url))
-           (hrefs (extract-urls root-node)))
+           (hrefs (extract-urls root-node #'same-domain)))
         (loop for href in hrefs
-              do (when (same-domain href url)
-                     (adjoin href hrefs)
-                     (crawl-for-urls (prepare-url url href))))
+              do (progn (adjoin href hrefs)
+                        (crawl-for-urls (prepare-url url href))))
         hrefs))
 
 (defun concat-node-text (node)
@@ -116,15 +119,6 @@
                            (download-file image filename))
                      (error (e) (format t "~&Error while downloading image [~a]~%~a~%" image e))))))
 
-(defun set-input-data (input data default)
-    (let ((name (attribute input 'name)))
-        (if (listp data)
-            (loop for pair in data
-                  if (substp (car pair) name)
-                    do (cons name (cadr pair))
-                  else do (cons name default))
-            (cons name data))))
-
 (defun nodes-to-string (list)
     (if (consp list)
         (string-right-trim " "
@@ -136,26 +130,28 @@
 (defun attribute (node attr)
     (plump:attribute node (string attr)))
 
-(defun collect-from (parent-node selectors &optional (attr nil))
+(defun collect-from (parent-node selectors &key attr test)
     (loop for node across (clss:select (nodes-to-string selectors) parent-node)
+          when (or (not test) (funcall test node))
           collect (if attr
                       (attribute node attr)
                       node)))
 
-(defun extract-urls (page)
-    (collect-from page 'a 'href))
+(defun extract-urls (page &optional test)
+    (collect-from page 'a :attr 'href :test test))
 
-(defun extract-attributes-names (page)
-    (collect-from page '(form input) 'name))
+(defun extract-input-names (page)
+    (collect-from page '(form input) :attr 'name))
 
 (defun extract-js-src (page)
-    (collect-from page 'script 'src))
+    (collect-from page 'script :attr 'src))
 
 (defun extract-forms (page &optional name)
     (let ((forms (collect-from page 'form)))
-        (if name
-            (loop for form in forms
-                  when (substp name (attribute form 'name))
-                    return form)
-            forms)))
-
+        (cond ((not (cdr forms))
+               (car forms))
+              (name
+               (loop for form in forms
+                     when (substp name (attribute form 'name))
+                       return form))
+              (t forms))))
