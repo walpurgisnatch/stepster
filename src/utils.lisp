@@ -7,7 +7,8 @@
    :regex-group
    :substp
    :string-starts-with
-   :print-error))
+   :print-error
+   :equal-getf))
 
 (in-package :stepster.utils)
 
@@ -29,6 +30,12 @@
     (if (string-equal string x :end1 (length x))
         t
         nil))
+
+(defun equal-getf (plist indicator)
+  (loop for key in plist by #'cddr
+        for value in (cdr plist) by #'cddr
+        when (equal key indicator)
+        return value))
 
 ; fileworks
 
