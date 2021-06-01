@@ -48,6 +48,7 @@
                (progn ,@body)))))
 
 (defun parse (url)
+    "Return plump root node for given url"
     (if (stringp url)
         (plump:parse (safe-get url))
         url))    
@@ -74,6 +75,7 @@
             (safe-get (make-arguments-string action data)))))
 
 (defun fill-form (form data)
+    "Return list of pairs (input-name value)."
     (let ((inputs (collect-from form 'input)))
         (loop with input-name for input in inputs
               collect (cons (setf input-name (attribute input 'name))
@@ -90,6 +92,7 @@
         hrefs))
 
 (defun concat-node-text (node)
+    "Return string of text from all of the children nodes."
     (let ((text-list nil))
         (plump:traverse node
                         (lambda (node) (push (plump:text node) text-list))
@@ -120,17 +123,17 @@
                      (error (e) (format t "~&Error while downloading image [~a]~%~a~%" image e))))))
 
 (defun nodes-to-string (list)
+    "Return selector string from list of symbols."
     (if (consp list)
-        (string-right-trim " "
-               (apply #'concatenate 'string
-                      (loop for word in list
-                            collect (concatenate 'string (string word) " "))))
+        (format nil "~{~a~^ ~}" list)
         (string list)))
 
 (defun attribute (node attr)
+    "Return attribute from node."
     (plump:attribute node (string attr)))
 
 (defun collect-from (parent-node selectors &key attr test)
+    "Return list of nodes or attributes from parrent node."
     (loop for node across (clss:select (nodes-to-string selectors) parent-node)
           when (or (not test) (funcall test node))
           collect (if attr
@@ -147,6 +150,8 @@
     (collect-from page 'script :attr 'src))
 
 (defun extract-forms (page &optional name)
+    "Return list of forms from page or single form if
+    page has only one form or specified form-name."
     (let ((forms (collect-from page 'form)))
         (cond ((not (cdr forms))
                (car forms))
