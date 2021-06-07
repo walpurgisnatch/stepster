@@ -11,8 +11,9 @@
     :components ((:module "src"
                   :serial t
                   :components
-                  ((:file "utils")                    
+                  ((:file "utils")
                    (:file "urlworks")
+                   (:file "json-works")
                    (:file "parser")
                    (:file "stepster"))))
     :description "Web tool library"

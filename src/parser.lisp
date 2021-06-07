@@ -1,6 +1,5 @@
 (in-package :cl-user)
-(defpackage stepster.parser
-  (:nicknames :ss)
+(defpackage stepster.parser 
   (:use :cl)
   (:import-from	:stepster.urlworks
                 :same-domain
@@ -8,6 +7,8 @@
                 :prepare-url
                 :make-arguments-string
                 :get-last)
+  (:import-from :stepster.json-works
+                :getj)
   (:import-from :stepster.utils
                 :print-error
                 :substp

@@ -61,8 +61,7 @@
     (concatenate 'string (regex-group 0 (get-main main)) path))
 
 (defun get-arguments (url)
-    (let ((parts (all-matches-as-strings "([a-zA-Z_%0-9-]*?)=.*?(&|$)" url)))
-        (mapcar #'(lambda (part) (split "=" (string-trim "&" part))) parts)))
+    (quri:uri-query-params (quri:uri url)))
 
 (defun arguments (list)
     (mapcar #'car (get-arguments list)))
@@ -71,8 +70,7 @@
     (mapcar #'cadr (get-arguments list)))
 
 (defun make-arguments-string (url data)
-    (concatenate 'string url
-                 (concatenate 'string "?" (arguments-string data))))
+    (concatenate 'string url "?" (arguments-string data)))
 
 (defun arguments-string (data)
     (format nil "~{~{~a=~a~}~^&~}" data))
