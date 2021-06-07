@@ -6,7 +6,8 @@
                  "plump"
                  "clss"
                  "cl-ppcre"
-                 "babel")
+                 "babel"
+                 "jonathan")
     :components ((:module "src"
                   :serial t
                   :components
