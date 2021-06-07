@@ -1,5 +1,6 @@
 (in-package :cl-user)
 (defpackage stepster.parser
+  (:nicknames :ss)
   (:use :cl)
   (:import-from	:stepster.urlworks
                 :same-domain
@@ -22,7 +23,8 @@
    :download-page
    :download-all-images
    :fill-form
-   :extract-forms))
+   :extract-forms
+   :parse-json))
 
 (in-package :stepster.parser)
 
@@ -73,6 +75,9 @@
         (if (string-equal method "post")
             (safe-post action data)
             (safe-get (make-arguments-string action data)))))
+
+(defun parse-json (url)
+    (jonathan:parse (safe-get url)))
 
 (defun fill-form (form data)
     "Return list of pairs (input-name value)."
