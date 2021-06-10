@@ -21,6 +21,13 @@
 (defun intern-ks (item)
     (mapcar #'intern-k item))
 
+(defun flatten (x)
+    (labels ((rec (x acc)
+                 (cond ((null x) acc)
+                       ((atom x) (cons x acc))
+                       (t (rec (car x) (rec (cdr x) acc))))))
+        (rec x nil)))
+
 (defun member-list (x y)
     (cond ((null x) t)
           ((atom x)
@@ -34,13 +41,13 @@
 (defun findj (list keys)
     (flet ((collect2 (list keys)
                (mapcar #'(lambda (item) (getf list item)) keys)))
-        (loop for (x y) in keys
+        (flatten (loop for (x y) in keys
               with result do
                 (setf result (jfinder list (intern-ks x)))
               if (consp (car result))
                 collect (loop for item in result
                               collect (collect2 item (intern-ks y)))
-              else collect (collect2 result (intern-ks y)))))
+              else collect (collect2 result (intern-ks y))))))
         
 
 (defun jfinder (list key &optional (acc nil))
