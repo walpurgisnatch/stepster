@@ -4,15 +4,22 @@
   (:export
    :getj
    :findj
+   :jfinder
    :intern-k))
 
 (in-package :stepster.json-works)
+
+(defun carlast (x)
+    (car (last x))) 
 
 (defun getj (list key)
     (getf list (intern-k key)))
 
 (defun intern-k (item)
     (intern (string-downcase (string item)) "KEYWORD"))
+
+(defun intern-ks (item)
+    (mapcar #'intern-k item))
 
 (defun member-list (x y)
     (cond ((null x) t)
@@ -24,26 +31,27 @@
                   (member-list (cdr x) (cdr y))))))
 
 
-(defun findj (list ks k &optional (path nil) (acc nil))
-    (let* ((key (intern-k k))
-           (chain (mapcar #'intern-k path))
-           (keys (mapcar #'intern-k ks))
-           (result (jfinder list key chain acc)))
-        (print result)
-        (loop for item in result
-              collect (mapcar #'(lambda (i) (getf item i)) keys))))
+(defun findj (list keys)
+    (flet ((collect2 (list keys)
+               (mapcar #'(lambda (item) (getf list item)) keys)))
+        (loop for (x y) in keys
+              with result do
+                (setf result (jfinder list (intern-ks x)))
+              if (consp (car result))
+                collect (loop for item in result
+                              collect (collect2 item (intern-ks y)))
+              else collect (collect2 result (intern-ks y)))))
         
 
-(defun jfinder (list key &optional (chain nil) (acc nil))
+(defun jfinder (list key &optional (acc nil))
     (cond ((null list) nil)
-          ((and (equal (car list) key)
-                (or (member-list (reverse chain) acc)
-                    (null chain)))
+          ((and (equal (carlast key) (car list))
+                (member-list (cdr (reverse key)) acc))
            (cadr list))
           ((consp (car list))
-           (or (jfinder (car list) key chain acc)
-               (jfinder (cdr list) key chain acc)))
+           (or (jfinder (car list) key acc)
+               (jfinder (cdr list) key acc)))
           ((consp (cadr list))
-           (or (jfinder (cadr list) key chain (cons (car list) acc))
-               (jfinder (cddr list) key chain acc)))
-          (t (jfinder (cdr list) key chain acc))))
+           (or (jfinder (cadr list) key (cons (car list) acc))
+               (jfinder (cddr list) key acc)))
+          (t (jfinder (cdr list) key acc))))
