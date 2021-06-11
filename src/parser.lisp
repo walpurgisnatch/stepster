@@ -77,7 +77,7 @@
             (safe-post action data)
             (safe-get (make-arguments-string action data)))))
 
-(defun parse-json (url)
+(defun get-json (url)
     (jonathan:parse (safe-get url)))
 
 (defun fill-form (form data)
