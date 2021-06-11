@@ -18,10 +18,14 @@
     (getf list (internk key)))
 
 (defun internk (item)
-    (intern (string-downcase (string item)) "KEYWORD"))
+    (if (numberp item)
+        item
+        (intern (string-downcase (string item)) "KEYWORD")))
 
 (defun intern2 (item)
-    (intern (string-downcase (string item))))
+    (if (numberp item)
+        item
+        (intern (string-downcase (string item)))))
 
 (defun internks (item)
     (mapcar #'internk item))
