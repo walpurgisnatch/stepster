@@ -5,7 +5,9 @@
    :getj
    :findj
    :jfinder
-   :intern-k))
+   :internk
+   :intern-list
+   :pack-with))
 
 (in-package :stepster.json-works)
 
@@ -24,6 +26,13 @@
 (defun internks (item)
     (mapcar #'internk item))
 
+(defun flatten (x)
+    (labels ((rec (x acc)
+                 (cond ((null x) acc)
+                       ((atom x) (cons x acc))
+                       (t (rec (car x) (rec (cdr x) acc))))))
+        (rec x nil)))
+
 (defun intern-list (list)
     (loop for item in list
           for i from 1
@@ -33,12 +42,11 @@
                  collect (internk item)
           else collect (intern2 item)))
 
-(defun flatten (x)
-    (labels ((rec (x acc)
-                 (cond ((null x) acc)
-                       ((atom x) (cons x acc))
-                       (t (rec (car x) (rec (cdr x) acc))))))
-        (rec x nil)))
+(defun pack-with (x y)
+    (loop for i in x
+          for j in y
+          collect i
+          collect j))
 
 (defun member-list (x y)
     (cond ((null x) t)
