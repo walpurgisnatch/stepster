@@ -5,8 +5,9 @@
    :getj
    :findj
    :jfinder
-   :internk
+   :internks
    :intern-list
+   :get-values
    :pack-with))
 
 (in-package :stepster.json-works)
@@ -22,13 +23,15 @@
         item
         (intern (string-downcase (string item)) "KEYWORD")))
 
+(defun internks (item)
+    (if (consp item)
+        (mapcar #'internk item)
+        (internk item)))
+
 (defun intern2 (item)
     (if (numberp item)
         item
         (intern (string-downcase (string item)))))
-
-(defun internks (item)
-    (mapcar #'internk item))
 
 (defun flatten (x)
     (labels ((rec (x acc)
@@ -61,17 +64,18 @@
           (t (and (member-list (car x) (car y))
                   (member-list (cdr x) (cdr y))))))
 
-(defun findj (list keys)
-    (flet ((collect2 (list keys)
-               (mapcar #'(lambda (item) (getf list item)) keys)))
-        (flatten (loop for (x y) in keys
-              with result do
-                (setf result (jfinder list (internks x)))
-              if (consp (car result))
-                collect (loop for item in result
-                              collect (collect2 item (internks y)))
-              else collect (collect2 result (internks y))))))
-        
+(defun get-values (list keys)
+    (if (consp (car list))
+        (loop for i in list
+              collect (mapcar #'(lambda (item) (getf i item)) (internks keys)))
+        (mapcar #'(lambda (item) (getf list item)) (internks keys))))
+
+(defun findj (json list keys)
+    (let ((result (jfinder json (internks list))))
+        (if (consp (car result))
+            (loop for item in result
+                  collect (car (get-values item keys)))
+            (get-values result keys))))
 
 (defun jfinder (list key &optional (acc nil))
     (cond ((null list) nil)
