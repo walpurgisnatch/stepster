@@ -8,7 +8,8 @@
    :internks
    :intern-list
    :get-values
-   :pack-with))
+   :pack-with
+   :pack-to-json))
 
 (in-package :stepster.json-works)
 
@@ -19,9 +20,11 @@
     (getf list (internk key)))
 
 (defun internk (item)
-    (if (numberp item)
-        item
-        (intern (string-downcase (string item)) "KEYWORD")))
+    (cond ((numberp item)
+           item)
+          ((stringp item)
+           (intern (format nil "~a" item) "KEYWORD"))
+        (t (intern (string-downcase (string item)) "KEYWORD"))))
 
 (defun internks (item)
     (if (consp item)
@@ -32,7 +35,7 @@
     (if (numberp item)
         item
         (intern (string-downcase (string item)))))
-
+    
 (defun flatten (x)
     (labels ((rec (x acc)
                  (cond ((null x) acc)
@@ -44,10 +47,13 @@
     (loop for item in list
           for i from 1
           if (consp item)
-            collect (mapcar #'intern2 item)
+            collect item
           else if (oddp i)
                  collect (internk item)
           else collect (intern2 item)))
+
+(defun pack-to-json (x y)
+    (jonathan:to-json (intern-list (pack-with x y))))
 
 (defun pack-with (x y)
     (loop for i in x
@@ -74,7 +80,7 @@
     (let ((result (jfinder json (internks list))))
         (if (consp (car result))
             (loop for item in result
-                  collect (car (get-values item keys)))
+                  collect (get-values item keys))
             (get-values result keys))))
 
 (defun jfinder (list key &optional (acc nil))
