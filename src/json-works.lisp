@@ -69,11 +69,19 @@
            (equal x y))
           (t (and (member-list (car x) (car y))
                   (member-list (cdr x) (cdr y))))))
-
-(defun get-values (list keys)
+(defun get-values (list keys &optional test)
     (if (consp (car list))
-        (loop for i in list
-              collect (mapcar #'(lambda (item) (getf i item)) (internks keys)))
+        (loop with tmp
+              with tmp1
+              for i in list
+              when (block continue
+                       (setf tmp (mapcar #'(lambda (item) (setf tmp1 (getf i item))
+                                               (if (and test
+                                                        (funcall test tmp1))
+                                                   (return-from continue)
+                                                   tmp1))
+                                         (internks keys))))
+                collect tmp)
         (mapcar #'(lambda (item) (getf list item)) (internks keys))))
 
 (defun findj (json list keys)
