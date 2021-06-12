@@ -26,6 +26,8 @@
    :fill-form
    :extract-forms
    :parse-json
+   :get-json
+   :post-json
    :safe-get
    :safe-post))
 
@@ -81,6 +83,9 @@
 
 (defun get-json (url)
     (jonathan:parse (safe-get url)))
+
+(defun post-json (url data)
+    (dex:post url :content data :headers '(("Content-Type" . "application/json"))))
 
 (defun fill-form (form data)
     "Return list of pairs (input-name value)."
