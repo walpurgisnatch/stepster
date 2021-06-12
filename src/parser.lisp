@@ -25,7 +25,9 @@
    :download-all-images
    :fill-form
    :extract-forms
-   :parse-json))
+   :parse-json
+   :safe-get
+   :safe-post))
 
 (in-package :stepster.parser)
 
