@@ -8,7 +8,14 @@
    :substp
    :string-starts-with
    :print-error
-   :equal-getf))
+   :equal-getf
+   :reverse-group
+   :carlast
+   :internks
+   :getj
+   :intern-list
+   :flatten
+   :member-list))
 
 (in-package :stepster.utils)
 
@@ -35,7 +42,59 @@
   (loop for key in plist by #'cddr
         for value in (cdr plist) by #'cddr
         when (equal key indicator)
-        return value))
+          return value))
+
+(defun member-list (x y)
+    (cond ((null x) t)
+          ((atom x)
+           (equal x (if (atom y) y (car y))))
+          ((atom y)
+           (equal x y))
+          (t (and (member-list (car x) (car y))
+                  (member-list (cdr x) (cdr y))))))
+
+(defun reverse-group (source n)
+    (if (zerop n) (error "zero length"))
+    (labels ((rec (source acc)
+                 (let ((rest (nthcdr n source)))
+                     (if (consp rest)
+                         (rec rest (cons (reverse (subseq source 0 n)) acc))
+                         (nreverse (cons (reverse source) acc))))))
+        (if source (rec source nil) nil)))
+
+(defun carlast (x)
+    (car (last x))) 
+
+(defun getj (list key)
+    (getf list (internk key)))
+
+(defun internk (item)
+    (cond ((numberp item)
+           item)
+          ((stringp item)
+           (intern (format nil "~a" item) "KEYWORD"))
+        (t (intern (string-downcase (string item)) "KEYWORD"))))
+
+(defun internks (item)
+    (if (consp item)
+        (mapcar #'internk item)
+        (internk item)))
+
+(defun intern-list (list)
+    (loop for item in list
+          for i from 1
+          if (consp item)
+            collect (intern-list item)
+          else if (oddp i)
+            collect (internk item)
+          else collect item))
+    
+(defun flatten (x)
+    (labels ((rec (x acc)
+                 (cond ((null x) acc)
+                       ((atom x) (cons x acc))
+                       (t (rec (car x) (rec (cdr x) acc))))))
+        (rec x nil)))
 
 ; fileworks
 
