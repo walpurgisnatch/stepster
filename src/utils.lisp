@@ -2,9 +2,8 @@
 (defpackage stepster.utils
   (:use :cl)
   (:import-from :cl-ppcre
-   				:scan-to-strings)
+                :scan-to-strings)
   (:export
-   :regex-group
    :substp
    :string-starts-with
    :print-error
@@ -20,23 +19,20 @@
 (in-package :stepster.utils)
 
 (defun print-error (e)
-    (format t "Error:~a~%" e))
+  (format t "Error:~a~%" e))
 
 (defun setf-assoc (field key value)
-    (setf (cdr (assoc key field)) value))
-
-(defun regex-group (group vector)
-    (aref vector group))
+  (setf (cdr (assoc key field)) value))
 
 (defun substp (regex string)
-    (if (scan-to-strings regex string)
-        t
-        nil))
+  (if (scan-to-strings regex string)
+      t
+      nil))
 
 (defun string-starts-with (string x)
-    (if (string-equal string x :end1 (length x))
-        t
-        nil))
+  (if (string-equal string x :end1 (length x))
+      t
+      nil))
 
 (defun equal-getf (plist indicator)
   (loop for key in plist by #'cddr
@@ -45,56 +41,54 @@
           return value))
 
 (defun member-list (x y)
-    (cond ((null x) t)
-          ((atom x)
-           (equal x (if (atom y) y (car y))))
-          ((atom y)
-           (equal x y))
-          (t (and (member-list (car x) (car y))
-                  (member-list (cdr x) (cdr y))))))
+  (cond ((null x) t)
+        ((atom x)
+         (equal x (if (atom y) y (car y))))
+        ((atom y)
+         (equal x y))
+        (t (and (member-list (car x) (car y))
+                (member-list (cdr x) (cdr y))))))
 
 (defun reverse-group (source n)
-    (if (zerop n) (error "zero length"))
-    (labels ((rec (source acc)
-                 (let ((rest (nthcdr n source)))
-                     (if (consp rest)
-                         (rec rest (cons (reverse (subseq source 0 n)) acc))
-                         (nreverse (cons (reverse source) acc))))))
-        (if source (rec source nil) nil)))
+  "Split list into groups by n and reverse them."
+  (if (zerop n) (error "zero length"))
+  (labels ((rec (source acc)
+             (let ((rest (nthcdr n source)))
+               (if (consp rest)
+                   (rec rest (cons (reverse (subseq source 0 n)) acc))
+                   (nreverse (cons (reverse source) acc))))))
+    (if source (rec source nil) nil)))
 
 (defun carlast (x)
-    (car (last x))) 
-
-(defun getj (list key)
-    (getf list (internk key)))
+  (car (last x)))
 
 (defun internk (item)
-    (cond ((numberp item)
-           item)
-          ((stringp item)
-           (intern (format nil "~a" item) "KEYWORD"))
+  (cond ((numberp item)
+         item)
+        ((stringp item)
+         (intern item "KEYWORD"))
         (t (intern (string-downcase (string item)) "KEYWORD"))))
 
 (defun internks (item)
-    (if (consp item)
-        (mapcar #'internk item)
-        (internk item)))
+  (if (consp item)
+      (mapcar #'internk item)
+      (internk item)))
 
 (defun intern-list (list)
-    (loop for item in list
-          for i from 1
-          if (consp item)
-            collect (intern-list item)
-          else if (oddp i)
-            collect (internk item)
-          else collect item))
-    
+  (loop for item in list
+        for i from 1
+        if (consp item)
+          collect (intern-list item)
+        else if (oddp i)
+               collect (internk item)
+        else collect item))
+
 (defun flatten (x)
-    (labels ((rec (x acc)
-                 (cond ((null x) acc)
-                       ((atom x) (cons x acc))
-                       (t (rec (car x) (rec (cdr x) acc))))))
-        (rec x nil)))
+  (labels ((rec (x acc)
+             (cond ((null x) acc)
+                   ((atom x) (cons x acc))
+                   (t (rec (car x) (rec (cdr x) acc))))))
+    (rec x nil)))
 
 ; fileworks
 

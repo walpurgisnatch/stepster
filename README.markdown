@@ -1,12 +1,11 @@
 # Stepster
+Parsing library
 
 ## Usage
+Comming soon
 
 ## Installation
 
-## Copyright
-
-Copyright (c) 2021 Walpurgisnatch
 
 ## License
 
