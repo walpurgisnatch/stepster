@@ -14,11 +14,13 @@
                 :substp
                 :equal-getf
                 :regex-group
-                :pathname-as-directory)
+                :pathname-as-directory
+                :clist)
   (:export
    :parse
    :attribute
    :collect-from
+   :concat-node-text
    :submit-form
    :download-file
    :download-page
@@ -30,7 +32,8 @@
    :post-json
    :safe-get
    :safe-post
-   :crawl-for-urls))
+   :crawl
+   :parse-regex))
 
 (in-package :stepster.parser)
 
@@ -97,25 +100,30 @@
                             (attribute input 'value)
                             "")))))
 
-(defun crawl-for-urls (url)
-  (let* ((root-node (parse url))
-         (hrefs (extract-urls root-node #'same-domain url)))
-    (loop for href in hrefs
-          do (adjoin href hrefs)
-          do (print href)
-          do (crawl-for-urls (prepare-url url href)))
-    hrefs))
+(defun crawl (url &optional (res nil))
+  "PLEASE FIX ME ТЫ УРОД"
+  (handler-case 
+      (let* ((root-node (parse url))
+             (hrefs (remove-duplicates (remove-if #'(lambda (x) (member x res :test #'equal))
+                                                  (mapcar #'(lambda (href) (prepare-url href url))
+                                                          (extract-urls root-node #'same-domain url))) :test #'equal)))
+        (setf res (append res hrefs))
+        (cond ((null hrefs) res)
+              (t (loop for href in hrefs do
+                (crawl href res)))))
+    (error () nil)))
 
-(defun concat-node-text (node)
+(defun concat-node-text (page)
   "Return string of text from all of the children nodes."
-  (let ((text-list nil))
+  (let ((node (parse page))
+        (text-list nil))
     (plump:traverse node
                     (lambda (node) (push (plump:text node) text-list))
                     :test #'plump:text-node-p)
     (apply #'concatenate 'string (nreverse text-list))))         
 
-(defun parse-regex ()
-  ())
+(defun parse-regex (url regex)
+  (cl-ppcre:all-matches-as-strings regex (concat-node-text url)))
 
 (defun download-file (url filename)
   (let ((response (safe-get url)))
@@ -153,11 +161,11 @@
 (defun collect-from (parent-node selectors &key attr test test-args)
   "Return list of nodes or attributes from parrent node."
   (loop for node across (clss:select (nodes-to-string selectors) parent-node)
-        with attribue
+        with attribute
         unless attr
           collect node
         else do (setf attribute (attribute node attr))
-             and when (or (not test) (apply test (cons attribute test-args)))
+             and when (or (not test) (apply test (clist attribute test-args)))
                    collect attribute))
 
 (defun extract-urls (page &optional test arg)

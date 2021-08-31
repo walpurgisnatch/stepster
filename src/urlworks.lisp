@@ -9,7 +9,8 @@
   (:import-from :stepster.utils
    				:substp
                 :string-starts-with
-                :regex-group)
+                :regex-group
+                :last-char)
   (:export
    :same-domain
    :get-arguments
@@ -28,20 +29,22 @@
 
 (defun prepare-url (url &optional main)
   (cond
+    ((substp "http" url) url)
     ((and main (relative url))
-     (http-join (join-with-main main url)))
+     (join-with-main main url))
     ((string-starts-with url "//") url)
     (t (http-join url))))
 
-(defun http-join (url &key (https nil))
+(defun http-join (url &key http-only)
   (let ((https-url (concatenate 'string "https://" url))
         (http-url (concatenate 'string "http://" url)))
-    (cond ((substp "http" url) url)            
-          (https (handler-case (progn
-                                 (dex:get https-url)
-                                 https-url)
-                   (error () http-url)))
-          (t http-url))))        
+    (if http-only
+        http-url
+        (handler-case
+            (progn
+              (dex:get https-url)
+              https-url)
+          (error () http-url)))))
 
 (defun relative (url)
   (substp "^[/]?[a-zA-Z/]*[.]?[a-zA-Z]*$" url))
@@ -58,7 +61,8 @@
   (nth-value 1 (scan-to-strings "(.+[.][a-zA-Z0-9]+?)([/]|$)(.*)" url)))
 
 (defun join-with-main (main path)
-  (concatenate 'string (regex-group 0 (get-main main)) path))
+  (let ((m (aref (get-main main) 0)))
+    (concatenate 'string m (unless (equal (last-char m) "/") "/") path)))
 
 (defun get-arguments (url)
   (quri:uri-query-params (quri:uri url)))

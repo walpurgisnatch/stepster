@@ -14,9 +14,19 @@
    :getj
    :intern-list
    :flatten
-   :member-list))
+   :member-list
+   :clist
+   :last-char))
 
 (in-package :stepster.utils)
+
+(defun clist (x &rest args)
+  (if args
+      (append (list x) args)
+      x))
+
+(defun last-char (x)
+  (make-string 1 :initial-element (aref x (1- (length x)))))
 
 (defun print-error (e)
   (format t "Error:~a~%" e))
