@@ -9,7 +9,6 @@
   (:import-from :stepster.utils
    				:substp
                 :string-starts-with
-                :regex-group
                 :last-char)
   (:export
    :same-domain

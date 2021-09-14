@@ -13,7 +13,6 @@
                 :print-error
                 :substp
                 :equal-getf
-                :regex-group
                 :pathname-as-directory
                 :clist)
   (:export
