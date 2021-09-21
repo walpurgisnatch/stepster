@@ -63,4 +63,4 @@
   (reverse-group (fj json (internks keys) nil json) (length keys)))
 
 (defun getj (list key)
-  (getf list (internk key)))
+  (getf list (internks key)))
