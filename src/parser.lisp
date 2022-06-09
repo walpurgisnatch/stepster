@@ -26,6 +26,8 @@
    :download-all-images
    :fill-form
    :extract-forms
+   :extract-urls
+   :extract-js-src
    :parse-json
    :get-json
    :post-json
@@ -162,12 +164,15 @@
   (loop for node across (clss:select (nodes-to-string selectors) parent-node)
         with attribute
         unless attr
-          collect node
+          when (or (not test) (apply test (clist node test-args)))
+            collect node
+        else do (null nil)
         else do (setf attribute (attribute node attr))
              and when (or (not test) (apply test (clist attribute test-args)))
                    collect attribute))
 
 (defun extract-urls (page &optional test arg)
+
   (collect-from page 'a :attr 'href :test test :test-args arg))
 
 (defun extract-input-names (page)
