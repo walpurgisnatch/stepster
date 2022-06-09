@@ -19,6 +19,7 @@
    :parse
    :attribute
    :collect-from
+   :node-with-attr
    :concat-node-text
    :submit-form
    :download-file
@@ -172,6 +173,11 @@
         else do (setf attribute (attribute node attr))
              and when (or (not test) (apply test (clist attribute test-args)))
                    collect attribute))
+
+(defun node-with-attr (parent-node selector attr val)
+  (loop for node across (clss:select (nodes-to-string selector) parent-node)
+        when (equal (attribute node attr) val)
+          return node))
 
 (defun check-attr (attribute)
   #'(lambda (node attr)
