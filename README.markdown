@@ -2,24 +2,24 @@
 Parsing library
 
 ## Usage
-Parse main node
+Parse main node  
 `(setf page (parse "uri"))`
 
 ### Collect stuff from page
 
-To collect all div elements
+To collect all div elements  
 `(collect-from page 'div)`
 
-To collect all links
+To collect all links  
 `(collect-from page 'a :attr 'href)`
 
-Or simply
+Or simply  
 `(extract-urls page)`
 
-Also it is possible to set up filter
+Also it is possible to set up filter  
 `(collect-from page 'a :attr 'href :test #'same-domain :test-args "uri")`
 
-All divs with class "card"
+All divs with class "card"  
 `(collect-from page 'div :attr 'class :test #'(lambda (node arg) (equal (ss:attribute node 'class) arg)) :test-args '("card"))`
 
 ### Extract functions
@@ -36,22 +36,22 @@ All divs with class "card"
 
 ### Download functions
 
-(download-file "uri" "path/to/file")
+`(download-file "uri" "path/to/file")`
 
-(download-page "uri" "path/to/file")
+`(download-page "uri" "path/to/file")`
 
-(download-all-images "uri" "path/to/dir")
+`(download-all-images "uri" "path/to/dir")`
 
 ### Utilities functions
 
-Return plump attribute from node
+Return plump attribute from node  
 `(attribute node 'attr)`
 
-Return string of text from all of the children nodes.
+Return string of text from all of the children nodes.  
 `(concat-node-text page)`
 
 ## Installation
-Download stepster to your library directory and load it with quicklisp
+Download stepster to your library directory and load it with quicklisp.  
 `(ql:quickload :stepster)`
 
 ## License
