@@ -20,19 +20,22 @@ Also it is possible to set up filter
 `(collect-from page 'a :attr 'href :test #'same-domain :test-args "uri")`
 
 All divs with class "card"  
-`(collect-from page 'div :attr 'class :test #'(lambda (node arg) (equal (ss:attribute node 'class) arg)) :test-args '("card"))`
+`(collect-from page 'div :test #'(lambda (node arg) (equal (ss:attribute node 'class) arg)) :test-args '"card")`
 
 ### Extract functions
 
-```
-(extract-urls page test arg)
+Get all links from page  
+`(extract-urls page test arg)`
 
-(extract-input-names page)
+All input names  
+`(extract-input-names page)`
 
-(extract-js-src page)
+Js sources  
+`(extract-js-src page)`
 
-(extract-forms page)
-```
+Forms  
+`(extract-forms page)`
+
 
 ### Download functions
 
