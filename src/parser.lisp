@@ -34,7 +34,9 @@
    :safe-get
    :safe-post
    :crawl
-   :parse-regex))
+   :parse-regex
+   :text
+   :check-attr))
 
 (in-package :stepster.parser)
 
@@ -171,8 +173,15 @@
              and when (or (not test) (apply test (clist attribute test-args)))
                    collect attribute))
 
-(defun extract-urls (page &optional test arg)
+(defun check-attr (attribute)
+  #'(lambda (node attr)
+      (equal (attribute node attribute) attr)))
 
+(defun text (page selectors &key test test-args)
+  (let ((node (collect-from page selectors :test test :test-args test-args)))
+    (plump:text (if (consp node) (car node) node))))
+
+(defun extract-urls (page &optional test arg)
   (collect-from page 'a :attr 'href :test test :test-args arg))
 
 (defun extract-input-names (page)
