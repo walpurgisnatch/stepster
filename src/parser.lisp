@@ -38,7 +38,8 @@
    :crawl
    :parse-regex
    :text
-   :check-attr))
+   :check-attr
+   :prepare-url))
 
 (in-package :stepster.parser)
 
@@ -173,28 +174,34 @@
 
 (defun collect-from (parent-node selectors &key attr test test-args)
   "Return list of nodes or attributes from parrent node."
-  (loop for node across (clss:select (nodes-to-string selectors) parent-node)
-        with attribute
-        unless attr
-          when (or (not test) (apply test (clist node test-args)))
-            collect node
-        else do (null nil)
-        else do (setf attribute (attribute node attr))
-             and when (or (not test) (apply test (clist node test-args)))
-                   collect attribute))
+  (handler-case
+      (loop for node across (clss:select (nodes-to-string selectors) parent-node)
+            with attribute
+            unless attr
+              when (or (not test) (apply test (clist node test-args)))
+                collect node
+            else do (null nil)
+            else do (setf attribute (attribute node attr))
+                 and when (or (not test) (apply test (clist node test-args)))
+                       collect attribute)
+    (error (e) (progn (print e) nil))))
 
 (defun node-with-attr (parent-node selector attr val)
-  (loop for node across (clss:select (nodes-to-string selector) parent-node)
-        when (equal (attribute node attr) val)
-          return node))
+  (handler-case 
+      (loop for node across (clss:select (nodes-to-string selector) parent-node)
+            when (equal (attribute node attr) val)
+              return node)
+    (error (e) (progn (print e) nil))))
 
 (defun check-attr (attribute)
   #'(lambda (node attr)
       (equal (attribute node attribute) attr)))
 
 (defun text (page selectors &key test test-args)
-  (let ((node (collect-from page selectors :test test :test-args test-args)))
-    (plump:text (if (consp node) (car node) node))))
+  (handler-case
+      (let ((node (collect-from page selectors :test test :test-args test-args)))
+        (plump:text (if (consp node) (car node) node)))
+    (error (e) (progn (print e) nil))))  
 
 (defun extract-urls (page &optional test arg)
   (collect-from page 'a :attr 'href :test test :test-args arg))
