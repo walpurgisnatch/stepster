@@ -20,6 +20,7 @@
    :attribute
    :collect-from
    :node-with-attr
+   :find-by-text
    :concat-node-text
    :submit-form
    :download-file
@@ -43,7 +44,7 @@
 
 
 (defparameter *cookie-jar* (cl-cookie:make-cookie-jar))
-
+(defparameter *user-agent-header* '(("User-Agent" . "Mozilla/5.0 (X11; Linux x86_64; rv:96.0) Gecko/20100101 Firefox/96.0")))
 
 (defmacro with-get (url &body body)
   `(handler-case
@@ -62,15 +63,16 @@
        (let ((js-file (babel:octets-to-string (safe-get src) :encoding :utf-8)))
          (progn ,@body)))))
 
-(defun parse (url)
+(defun parse (url &key headers)
   "Return plump root node for given url"
   (if (stringp url)
-      (plump:parse (safe-get url))
+      (plump:parse (safe-get url :headers headers))
       url))    
 
-(defun safe-get (url)
+(defun safe-get (url &key (headers *user-agent-header*))
   (handler-case (dex:get (prepare-url url)
-                         :cookie-jar *cookie-jar*)
+                         :cookie-jar *cookie-jar*
+                         :headers headers)
     (error (e) (print-error e))))
 
 (defun safe-post (url data)
@@ -124,7 +126,14 @@
     (plump:traverse node
                     (lambda (node) (push (plump:text node) text-list))
                     :test #'plump:text-node-p)
-    (apply #'concatenate 'string (nreverse text-list))))         
+    (apply #'concatenate 'string (nreverse text-list))))
+
+(defun find-by-text (parent-node text &key attr)
+  (let ((result nil))
+    (plump:traverse parent-node
+                    (lambda (node) (setf result (if attr (attribute (plump:parent node) attr) (plump:parent node))))
+                    :test (lambda (node) (and (plump:text-node-p node) (substp text (plump:text node)))))
+    result))
 
 (defun parse-regex (url regex)
   (cl-ppcre:all-matches-as-strings regex (concat-node-text url)))
@@ -171,7 +180,7 @@
             collect node
         else do (null nil)
         else do (setf attribute (attribute node attr))
-             and when (or (not test) (apply test (clist attribute test-args)))
+             and when (or (not test) (apply test (clist node test-args)))
                    collect attribute))
 
 (defun node-with-attr (parent-node selector attr val)
