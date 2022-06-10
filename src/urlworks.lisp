@@ -46,7 +46,7 @@
           (error () http-url)))))
 
 (defun relative (url)
-  (substp "^[/]?[a-zA-Z/]*[.]?[a-zA-Z]*$" url))
+  (substp "^[/]?[a-zA-Z0-9-/]*[.]?[a-zA-Z0-9-]*$" url))
 
 (defun split-url (url)
   (let ((items (split "[.]|[/]|[?]" url)))
@@ -61,7 +61,8 @@
 
 (defun join-with-main (main path)
   (let ((m (aref (get-main main) 0)))
-    (concatenate 'string m (unless (equal (last-char m) "/") "/") path)))
+    (concatenate 'string m (unless (or (equal (last-char m) "/")
+                                       (string-starts-with path "/")) "/") path)))
 
 (defun get-arguments (url)
   (quri:uri-query-params (quri:uri url)))
