@@ -66,9 +66,11 @@
 
 (defun parse (url &key headers)
   "Return plump root node for given url"
-  (if (stringp url)
-      (plump:parse (safe-get url :headers headers))
-      url))    
+  (handler-case
+      (if (stringp url)
+          (plump:parse (safe-get url :headers headers))
+          url)
+    (error (e) nil)))    
 
 (defun safe-get (url &key (headers *user-agent-header*))
   (handler-case (dex:get (prepare-url url)
@@ -201,7 +203,7 @@
   (handler-case
       (let ((node (collect-from page selectors :test test :test-args test-args)))
         (plump:text (if (consp node) (car node) node)))
-    (error (e) (progn (print e) nil))))  
+    (error (e) (progn (print e) nil))))
 
 (defun extract-urls (page &optional test arg)
   (collect-from page 'a :attr 'href :test test :test-args arg))
