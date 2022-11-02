@@ -16,5 +16,4 @@
                  (:file "json-works")
                  (:file "parser")
                  (:file "stepster"))))
-  :description "Web tools"
-  :in-order-to ((test-op (test-op "stepster/tests"))))
+  :description "Web scraping library")
