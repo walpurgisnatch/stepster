@@ -7,7 +7,8 @@
                "clss"
                "cl-ppcre"
                "babel"
-               "jonathan")
+               "jonathan"
+               "cl-reexport")
   :components ((:module "src"
                 :serial t
                 :components

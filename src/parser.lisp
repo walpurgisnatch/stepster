@@ -19,6 +19,8 @@
    :parse
    :attribute
    :collect-from
+   :node-with-attr
+   :find-by-text
    :concat-node-text
    :submit-form
    :download-file
@@ -34,13 +36,16 @@
    :safe-get
    :safe-post
    :crawl
-   :parse-regex))
+   :parse-regex
+   :text
+   :check-attr
+   :prepare-url))
 
 (in-package :stepster.parser)
 
 
 (defparameter *cookie-jar* (cl-cookie:make-cookie-jar))
-
+(defparameter *user-agent-header* '(("User-Agent" . "Mozilla/5.0 (X11; Linux x86_64; rv:96.0) Gecko/20100101 Firefox/96.0")))
 
 (defmacro with-get (url &body body)
   `(handler-case
@@ -59,15 +64,18 @@
        (let ((js-file (babel:octets-to-string (safe-get src) :encoding :utf-8)))
          (progn ,@body)))))
 
-(defun parse (url)
+(defun parse (url &key headers)
   "Return plump root node for given url"
-  (if (stringp url)
-      (plump:parse (safe-get url))
-      url))    
+  (handler-case
+      (if (stringp url)
+          (plump:parse (safe-get url :headers headers))
+          url)
+    (error (e) nil)))    
 
-(defun safe-get (url)
+(defun safe-get (url &key (headers *user-agent-header*))
   (handler-case (dex:get (prepare-url url)
-                         :cookie-jar *cookie-jar*)
+                         :cookie-jar *cookie-jar*
+                         :headers headers)
     (error (e) (print-error e))))
 
 (defun safe-post (url data)
@@ -121,7 +129,14 @@
     (plump:traverse node
                     (lambda (node) (push (plump:text node) text-list))
                     :test #'plump:text-node-p)
-    (apply #'concatenate 'string (nreverse text-list))))         
+    (apply #'concatenate 'string (nreverse text-list))))
+
+(defun find-by-text (parent-node text &key attr)
+  (let ((result nil))
+    (plump:traverse parent-node
+                    (lambda (node) (setf result (if attr (attribute (plump:parent node) attr) (plump:parent node))))
+                    :test (lambda (node) (and (plump:text-node-p node) (substp text (plump:text node)))))
+    result))
 
 (defun parse-regex (url regex)
   (cl-ppcre:all-matches-as-strings regex (concat-node-text url)))
@@ -161,18 +176,36 @@
 
 (defun collect-from (parent-node selectors &key attr test test-args)
   "Return list of nodes or attributes from parrent node."
-  (loop for node across (clss:select (nodes-to-string selectors) parent-node)
-        with attribute
-        unless attr
-          when (or (not test) (apply test (clist node test-args)))
-            collect node
-        else do (null nil)
-        else do (setf attribute (attribute node attr))
-             and when (or (not test) (apply test (clist attribute test-args)))
-                   collect attribute))
+  (handler-case
+      (loop for node across (clss:select (nodes-to-string selectors) parent-node)
+            with attribute
+            unless attr
+              when (or (not test) (apply test (clist node test-args)))
+                collect node
+            else do (null nil)
+            else do (setf attribute (attribute node attr))
+                 and when (or (not test) (apply test (clist node test-args)))
+                       collect attribute)
+    (error (e) (progn (print e) nil))))
+
+(defun node-with-attr (parent-node selector attr val)
+  (handler-case 
+      (loop for node across (clss:select (nodes-to-string selector) parent-node)
+            when (equal (attribute node attr) val)
+              return node)
+    (error (e) (progn (print e) nil))))
+
+(defun check-attr (attribute)
+  #'(lambda (node attr)
+      (equal (attribute node attribute) attr)))
+
+(defun text (page selectors &key test test-args)
+  (handler-case
+      (let ((node (collect-from page selectors :test test :test-args test-args)))
+        (plump:text (if (consp node) (car node) node)))
+    (error (e) (progn (print e) nil))))
 
 (defun extract-urls (page &optional test arg)
-
   (collect-from page 'a :attr 'href :test test :test-args arg))
 
 (defun extract-input-names (page)
