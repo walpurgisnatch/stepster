@@ -1,4 +1,6 @@
 # Stepster
+[![Quicklisp](http://quickdocs.org/badge/stepster.svg)](http://quickdocs.org/stepster/)  
+  
 Parsing library
 
 ## Usage
