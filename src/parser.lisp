@@ -39,7 +39,8 @@
    :parse-regex
    :text
    :check-attr
-   :prepare-url))
+   :prepare-url
+   :get-status-code))
 
 (in-package :stepster.parser)
 
@@ -77,6 +78,15 @@
                          :cookie-jar *cookie-jar*
                          :headers headers)
     (error (e) (print-error e))))
+
+(defun get-status-code (url)
+  (handler-case (nth-value 1 (dex:get (prepare-url url)
+                                      :headers *user-agent-header*))
+    (dex:http-request-bad-request ()
+      400)
+    (dex:http-request-failed (e)
+      (dex:response-status e))
+    (error (e) e)))
 
 (defun safe-post (url data)
   (handler-case
