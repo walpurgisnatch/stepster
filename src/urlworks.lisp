@@ -13,14 +13,16 @@
   (:export
    :same-domain
    :get-arguments
-   :arguments
+   :arguments-keys
    :arguments-values
    :join-with-main
    :prepare-url
-   :get-last))
+   :get-last
+   :query-string
+   :make-query-string
+   :replace-argument))
 
 (in-package :stepster.urlworks)
-
 
 (defun same-domain (url domain)  
   (or (substp domain url)
@@ -62,25 +64,27 @@
 (defun join-with-main (main path)
   (let ((m (aref (get-main main) 0)))
     (concatenate 'string m (unless (or (equal (last-char m) "/")
-                                       (string-starts-with path "/")) "/") path)))
+                                       (string-starts-with path "/"))
+                             "/")
+                 path)))
 
 (defun get-arguments (url)
   (quri:uri-query-params (quri:uri url)))
 
-(defun arguments (list)
+(defun arguments-keys (list)
   (mapcar #'car (get-arguments list)))
 
 (defun arguments-values (list)
   (mapcar #'cadr (get-arguments list)))
 
-(defun make-arguments-string (url data)
-  (concatenate 'string url "?" (arguments-string data)))
+(defun make-query-string (url data)
+  (concatenate 'string url "?" (query-string data)))
 
-(defun arguments-string (data)
+(defun query-string (data)
   (format nil "~{~{~a=~a~}~^&~}" data))
 
 (defun replace-arguments (url value)
-  (arguments-string 
+  (query-string 
    (loop for arg in (get-arguments url)
          collect (list (car arg) value))))
 
