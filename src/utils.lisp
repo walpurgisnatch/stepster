@@ -12,7 +12,6 @@
    :carlast
    :internks
    :getj
-   :intern-list
    :flatten
    :member-list
    :clist
@@ -83,15 +82,6 @@
   (if (consp item)
       (mapcar #'internk item)
       (internk item)))
-
-(defun intern-list (list)
-  (loop for item in list
-        for i from 1
-        if (consp item)
-          collect (intern-list item)
-        else if (oddp i)
-               collect (internk item)
-        else collect item))
 
 (defun flatten (x)
   (labels ((rec (x acc)

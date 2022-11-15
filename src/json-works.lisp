@@ -5,14 +5,11 @@
                 :reverse-group
                 :internks
                 :carlast
-                :intern-list
                 :member-list)
   (:export
    :getj
-   :findj
    :jfinder
    :internks
-   :intern-list
    :get-values
    :pack-with
    :pack-to-json
@@ -20,15 +17,24 @@
 
 (in-package :stepster.json-works)
 
-(defun pack-to-json (keys values)
-  (jonathan:to-json (intern-list (pack-with keys values))))
+(defun intern-list (list)
+  (loop for item in list
+        for i from 1
+        if (consp item)
+          collect (intern-list item)
+        else if (oddp i)
+               collect (internk item)
+        else collect item))
 
 (defun pack-with (keys values)
-  (loop for item in values collect
-                           (loop for i in keys
-                                 for j in item
-                                 collect i
-                                 collect j)))
+  (loop for item in values
+        collect (loop for i in keys
+                      for j in item
+                      collect i
+                      collect j)))
+
+(defun pack-to-json (keys values)
+  (jonathan:to-json (intern-list (pack-with keys values))))
 
 (defun get-values (list keys)
   (if (consp (car list))

@@ -5,7 +5,7 @@
                 :same-domain
                 :join-with-main
                 :prepare-url
-                :make-arguments-string
+                :make-query-string
                 :get-last)
   (:import-from :stepster.json-works
                 :getj)
@@ -48,35 +48,31 @@
 (defparameter *cookie-jar* (cl-cookie:make-cookie-jar))
 (defparameter *user-agent-header* '(("User-Agent" . "Mozilla/5.0 (X11; Linux x86_64; rv:96.0) Gecko/20100101 Firefox/96.0")))
 
-(defmacro with-get (url &body body)
-  `(handler-case
-       (multiple-value-bind (response-body status-code response-headers quri-uri)
-           (dex:get (prepare-url ,url) :cookie-jar *cookie-jar*)
-         (declare (ignorable status-code response-headers quri-uri))
-         (let ((root-node (plump:parse response-body))
-               (response-url (quri:render-uri quri-uri)))
-           (declare (ignorable root-node))
-           (progn ,@body)))
-     (error (e) (print-error e))))
-
 (defmacro for-js (page &body body)
   `(let ((srcs (extract-js-src (parse ,page))))
      (loop for src in srcs do
        (let ((js-file (babel:octets-to-string (safe-get src) :encoding :utf-8)))
          (progn ,@body)))))
 
-(defun parse (url &key headers)
+(defun parse (page &key headers)
   "Return plump root node for given url"
   (handler-case
-      (if (stringp url)
-          (plump:parse (safe-get url :headers headers))
-          url)
+      (if (stringp page)
+          (plump:parse (safe-get page :headers headers))
+          page)
     (error (e) nil)))    
 
 (defun safe-get (url &key (headers *user-agent-header*))
   (handler-case (dex:get (prepare-url url)
                          :cookie-jar *cookie-jar*
                          :headers headers)
+    (error (e) (print-error e))))
+
+(defun safe-post (url data &key (headers *user-agent-header*))
+  (handler-case (dex:post (prepare-url url)
+                          :cookie-jar *cookie-jar*
+                          :headers headers
+                          :content data)
     (error (e) (print-error e))))
 
 (defun get-status-code (url)
@@ -87,13 +83,6 @@
     (dex:http-request-failed (e)
       (dex:response-status e))
     (error (e) e)))
-
-(defun safe-post (url data)
-  (handler-case
-      (dex:post url
-                :cookie-jar *cookie-jar*
-                :content data)
-    (error (e) (print-error e))))
 
 (defun submit-form (url &key form data)
   (let* ((form (extract-forms (parse url) (when form form)))
