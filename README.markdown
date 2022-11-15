@@ -1,4 +1,6 @@
 # Stepster
+[![Quicklisp](http://quickdocs.org/badge/stepster.svg)](http://quickdocs.org/stepster/)  
+  
 Parsing library
 
 ## Usage
@@ -54,7 +56,7 @@ Return string of text from all of the children nodes.
 `(concat-node-text page)`
 
 ## Installation
-Download stepster to your library directory and load it with quicklisp.  
+### Quicklisp.  
 `(ql:quickload :stepster)`
 
 ## License
