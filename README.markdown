@@ -4,6 +4,7 @@
 Parsing library
 
 ## Usage
+
 Parse main node  
 `(setf page (parse "uri"))`
 
@@ -38,7 +39,6 @@ Js sources
 Forms  
 `(extract-forms page)`
 
-
 ### Download functions
 
 `(download-file "uri" "path/to/file")`
@@ -47,12 +47,50 @@ Forms
 
 `(download-all-images "uri" "path/to/dir")`
 
+### Json works
+
+Recursively parse value of one element from json  
+`(ss:jfinder json "value")`
+
+Also possible to set full path or part of the path to element  
+`(ss:jfinder json '("page" "engine_version" "value"))`
+
+`(ss:jfinder json '("engine_version" "value"))`
+
+Recursively parse list of elements values from array  
+```
+CL-USER> json ;; may also be a string
+(:|infiniteSearchResult|
+ ((:|itemId| 276843344 :|modelVersion|
+   "ml_recommendations_engine.recsys_lightfm_desc_mixed.v1" :|score|
+   0.05633471119569102d0)
+  (:|itemId| 271451418 :|modelVersion|
+   "ml_recommendations_engine.recsys_lightfm_desc_mixed.v1" :|score|
+   0.05633471119569102d0)
+  (:|itemId| 274323904 :|modelVersion|
+   "ml_recommendations_engine.recsys_lightfm_desc_mixed.v1" :|score|
+   0.05633471119569102d0)))
+CL-USER> (ss:collect-json json '("itemId" "score"))
+((276843344 0.05633471119569102d0) (271451418 0.05633471119569102d0)
+ (274323904 0.05633471119569102d0))
+```
+
+Create json back with this values with  
+```
+CL-USER> (ss:pack-with '("Id" "value") (ss:collect-json json '("itemId" "score")))
+(("Id" 276843344 "value" 0.05633471119569102d0)
+ ("Id" 271451418 "value" 0.05633471119569102d0)
+ ("Id" 274323904 "value" 0.05633471119569102d0))
+CL-USER> (ss:pack-to-json '("Id" "value") (ss:collect-json json '("itemId" "score")))
+"[{\"Id\":276843344,\"value\":0.05633471119569102},{\"Id\":271451418,\"value\":0.05633471119569102},{\"Id\":274323904,\"value\":0.05633471119569102}]"
+```
+
 ### Utilities functions
 
 Return plump attribute from node  
 `(attribute node 'attr)`
 
-Return string of text from all of the children nodes.  
+Return text from all of the children nodes.  
 `(concat-node-text page)`
 
 ## Installation

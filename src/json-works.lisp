@@ -5,7 +5,8 @@
                 :reverse-group
                 :internks
                 :carlast
-                :member-list)
+                :member-list
+                :mklist)
   (:export
    :getj
    :jfinder
@@ -23,7 +24,7 @@
         if (consp item)
           collect (intern-list item)
         else if (oddp i)
-               collect (internk item)
+               collect (internks item)
         else collect item))
 
 (defun pack-with (keys values)
@@ -42,20 +43,23 @@
             collect (mapcar #'(lambda (item) (getf i item)) (internks keys)))
       (mapcar #'(lambda (item) (getf list item)) (internks keys))))
 
-(defun jfinder (list key &optional (acc nil))
-  (cond ((null list) nil)
-        ((and (equal (carlast key) (car list))
-              (member-list (cdr (reverse key)) acc))
-         (cadr list))
-        ((consp (car list))
-         (or (jfinder (car list) key acc)
-             (jfinder (cdr list) key acc)))
-        ((consp (cadr list))
-         (or (jfinder (cadr list) key (cons (car list) acc))
-             (jfinder (cddr list) key acc)))
-        (t (jfinder (cdr list) key acc))))
+(defun jfinder (json key)
+  (when (stringp json) (setf json (jonathan:parse json)))
+  (labels ((jparse (list key acc)
+             (cond ((null list) nil)
+                   ((and (equal (carlast key) (car list))
+                         (member-list (cdr (reverse key)) acc))
+                    (cadr list))
+                   ((consp (car list))
+                    (or (jparse (car list) key acc)
+                        (jparse (cdr list) key acc)))
+                   ((consp (cadr list))
+                    (or (jparse (cadr list) key (cons (car list) acc))
+                        (jparse (cddr list) key acc)))
+                   (t (jparse (cdr list) key acc)))))
+    (jparse json (internks (mklist key)) nil)))
 
-(defun fj (json keys &optional acc list)    
+(defun fj (json keys &optional acc list)
   (cond ((null json) acc)
         ((equal (car keys) (car json))
          (fj list (cdr keys) (cons (cadr json) acc) list))
@@ -66,6 +70,7 @@
         (t (fj (cddr json) keys acc list))))
 
 (defun collect-json (json keys)
+  (when (stringp json) (setf json (jonathan:parse json)))
   (reverse-group (fj json (internks keys) nil json) (length keys)))
 
 (defun getj (list key)

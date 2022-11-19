@@ -15,7 +15,8 @@
    :flatten
    :member-list
    :clist
-   :last-char))
+   :last-char
+   :mklist))
 
 (in-package :stepster.utils)
 
@@ -23,6 +24,11 @@
   (if args
       (append (list x) args)
       x))
+
+(defun mklist (el)
+  (if (consp el)
+      el
+      (list el)))
 
 (defun last-char (x)
   (make-string 1 :initial-element (aref x (1- (length x)))))
