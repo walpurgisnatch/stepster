@@ -21,23 +21,19 @@
    :collect-from
    :node-with-attr
    :find-by-text
-   :concat-node-text
+   :page-text
    :submit-form
    :download-file
    :download-page
-   :download-all-images
    :fill-form
    :extract-forms
-   :extract-urls
-   :extract-js-src
    :parse-json
    :get-json
    :post-json
    :safe-get
    :safe-post
-   :crawl
    :parse-regex
-   :text
+   :parse-text
    :check-attr
    :prepare-url
    :get-status-code))
@@ -47,12 +43,6 @@
 
 (defparameter *cookie-jar* (cl-cookie:make-cookie-jar))
 (defparameter *user-agent-header* '(("User-Agent" . "Mozilla/5.0 (X11; Linux x86_64; rv:96.0) Gecko/20100101 Firefox/96.0")))
-
-(defmacro for-js (page &body body)
-  `(let ((srcs (extract-js-src (parse ,page))))
-     (loop for src in srcs do
-       (let ((js-file (babel:octets-to-string (safe-get src) :encoding :utf-8)))
-         (progn ,@body)))))
 
 (defun parse (page &key headers)
   "Return plump root node for given url"
@@ -75,6 +65,12 @@
                           :content data)
     (error (e) (print-error e))))
 
+(defun get-json (url)
+  (jonathan:parse (safe-get url)))
+
+(defun post-json (url data)
+  (dex:post url :content data :headers '(("Content-Type" . "application/json"))))
+
 (defun get-status-code (url)
   (handler-case (nth-value 1 (dex:get (prepare-url url)
                                       :headers *user-agent-header*))
@@ -91,13 +87,7 @@
          (data (fill-form form data)))
     (if (string-equal method "post")
         (safe-post action data)
-        (safe-get (make-arguments-string action data)))))
-
-(defun get-json (url)
-  (jonathan:parse (safe-get url)))
-
-(defun post-json (url data)
-  (dex:post url :content data :headers '(("Content-Type" . "application/json"))))
+        (safe-get (make-query-string action data)))))
 
 (defun fill-form (form data)
   "Return list of pairs (input-name value)."
@@ -108,20 +98,7 @@
                             (attribute input 'value)
                             "")))))
 
-(defun crawl (url &optional (res nil))
-  "PLEASE FIX ME ТЫ УРОД"
-  (handler-case 
-      (let* ((root-node (parse url))
-             (hrefs (remove-duplicates (remove-if #'(lambda (x) (member x res :test #'equal))
-                                                  (mapcar #'(lambda (href) (prepare-url href url))
-                                                          (extract-urls root-node #'same-domain url))) :test #'equal)))
-        (setf res (append res hrefs))
-        (cond ((null hrefs) res)
-              (t (loop for href in hrefs do
-                (crawl href res)))))
-    (error () nil)))
-
-(defun concat-node-text (page)
+(defun page-text (page)
   "Return string of text from all of the children nodes."
   (let ((node (parse page))
         (text-list nil))
@@ -130,15 +107,18 @@
                     :test #'plump:text-node-p)
     (apply #'concatenate 'string (nreverse text-list))))
 
+(defun parse-text (page selectors)
+  (let* ((parsed (parse page))
+         (node (collect-from parsed selectors)))
+    (when node
+      (plump:text (if (consp node) (car node) node)))))
+
 (defun find-by-text (parent-node text &key attr)
   (let ((result nil))
     (plump:traverse parent-node
                     (lambda (node) (setf result (if attr (attribute (plump:parent node) attr) (plump:parent node))))
                     :test (lambda (node) (and (plump:text-node-p node) (substp text (plump:text node)))))
     result))
-
-(defun parse-regex (url regex)
-  (cl-ppcre:all-matches-as-strings regex (concat-node-text url)))
 
 (defun download-file (url filename)
   (let ((response (safe-get url)))
@@ -152,16 +132,6 @@
     (with-open-file (stream filename :direction :output :if-exists :supersede)
       (when response 
         (write-string response stream)))))
-
-(defun download-all-images (url dir)
-  (let ((images (collect-from (parse url) '(img src))))
-    (setf dir (namestring (ensure-directories-exist (pathname-as-directory dir))))
-    (loop for image in images
-          when image
-            do (handler-case
-                   (let ((filename (concatenate 'string dir (aref (get-last image) 1))))
-                     (download-file image filename))
-                 (error (e) (format t "~&Error while downloading image [~a]~%~a~%" image e))))))
 
 (defun nodes-to-string (list)
   "Return selector string from list of symbols."
@@ -197,21 +167,6 @@
 (defun check-attr (attribute)
   #'(lambda (node attr)
       (equal (attribute node attribute) attr)))
-
-(defun text (page selectors &key test test-args)
-  (handler-case
-      (let ((node (collect-from page selectors :test test :test-args test-args)))
-        (plump:text (if (consp node) (car node) node)))
-    (error (e) (progn (print e) nil))))
-
-(defun extract-urls (page &optional test arg)
-  (collect-from page 'a :attr 'href :test test :test-args arg))
-
-(defun extract-input-names (page)
-  (collect-from page '(form input) :attr 'name))
-
-(defun extract-js-src (page)
-  (collect-from page 'script :attr 'src))
 
 (defun extract-forms (page &optional name)
   "Return list of forms from page or single form if
