@@ -16,5 +16,6 @@
                  (:file "urlworks")
                  (:file "json-works")
                  (:file "parser")
+                 (:file "extensions")
                  (:file "stepster"))))
   :description "Web scraping library")

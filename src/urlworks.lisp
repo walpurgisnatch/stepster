@@ -83,7 +83,7 @@
 (defun query-string (data)
   (format nil "~{~{~a=~a~}~^&~}" data))
 
-(defun replace-arguments (url value)
+(defun replace-arguments-with-value (url value)
   (query-string 
    (loop for arg in (get-arguments url)
          collect (list (car arg) value))))
