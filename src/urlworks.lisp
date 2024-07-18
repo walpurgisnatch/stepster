@@ -33,19 +33,10 @@
     ((substp "http" url) url)
     ((and main (relative url))
      (join-with-main main url))
-    ((string-starts-with url "//") url)
     (t (http-join url))))
 
 (defun http-join (url &key http-only)
-  (let ((https-url (concatenate 'string "https://" url))
-        (http-url (concatenate 'string "http://" url)))
-    (if http-only
-        http-url
-        (handler-case
-            (progn
-              (dex:get https-url)
-              https-url)
-          (error () http-url)))))
+  (concatenate 'string "https://" url))
 
 (defun relative (url)
   (substp "^[/]?[a-zA-Z0-9-/]*[.]?[a-zA-Z0-9-]*$" url))
@@ -63,9 +54,10 @@
 
 (defun join-with-main (main path)
   (let ((m (aref (get-main main) 0)))
-    (concatenate 'string m (unless (or (equal (last-char m) "/")
-                                       (string-starts-with path "/"))
-                             "/")
+    (concatenate 'string m
+                 (unless (or (equal (last-char m) "/")
+                             (string-starts-with path "/"))
+                   "/")
                  path)))
 
 (defun get-arguments (url)

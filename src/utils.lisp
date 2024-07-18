@@ -40,14 +40,10 @@
   (setf (cdr (assoc key field)) value))
 
 (defun substp (regex string)
-  (if (scan-to-strings regex string)
-      t
-      nil))
+  (scan-to-strings regex string))
 
 (defun string-starts-with (string x)
-  (if (string-equal string x :end1 (length x))
-      t
-      nil))
+  (string-equal string x :end1 (length x)))
 
 (defun equal-getf (plist indicator)
   (loop for key in plist by #'cddr

@@ -43,6 +43,9 @@
             collect (mapcar #'(lambda (item) (getf i item)) (internks keys)))
       (mapcar #'(lambda (item) (getf list item)) (internks keys))))
 
+(defun getj (list key)
+  (getf list (internks key)))
+
 (defun jfinder (json key)
   (when (stringp json) (setf json (jonathan:parse json)))
   (labels ((jparse (list key acc)
@@ -73,5 +76,3 @@
   (when (stringp json) (setf json (jonathan:parse json)))
   (reverse-group (fj json (internks keys) nil json) (length keys)))
 
-(defun getj (list key)
-  (getf list (internks key)))
