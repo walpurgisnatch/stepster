@@ -8,7 +8,8 @@
    :extract-urls
    :extract-input-names
    :extract-js-src
-   :parse-regex))
+   :parse-regex
+   :parse-text))
 
 (in-package :stepster.extensions)
 
@@ -18,14 +19,22 @@
        (let ((js-file (babel:octets-to-string (safe-get src) :encoding :utf-8)))
          (progn ,@body)))))
 
+(defun parse-text (page selectors)
+  (let* ((parsed (parse page))
+         (node (elt (clss:select (nodes-to-string selectors) parsed) 0)))
+    (when node (plump:text node))))
+
+(defun parse-json (page key)
+  (jfinder (parse page) key))
+
 (defun extract-urls (page &optional test arg)
-  (collect-from page 'a :attr 'href :test test :test-args arg))
+  (collect-from (parse page) 'a :attr 'href :test test :test-args arg))
 
 (defun extract-input-names (page)
-  (collect-from page '(form input) :attr 'name))
+  (collect-from (parse page) '(form input) :attr 'name))
 
 (defun extract-js-src (page)
-  (collect-from page 'script :attr 'src))
+  (collect-from (parse page) 'script :attr 'src))
 
 (defun download-all-images (url dir)
   (let ((images (collect-from (parse url) '(img src))))
