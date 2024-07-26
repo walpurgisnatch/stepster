@@ -21,8 +21,8 @@
 
 (defun parse-text (page selectors)
   (let* ((parsed (parse page))
-         (node (elt (clss:select (nodes-to-string selectors) parsed) 0)))
-    (when node (plump:text node))))
+         (finded (clss:select (nodes-to-string selectors) parsed)))
+    (when (> (length finded) 0) (plump:text (elt finded 0)))))
 
 (defun parse-json (page key)
   (jfinder (parse page) key))
