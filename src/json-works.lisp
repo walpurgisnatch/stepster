@@ -27,12 +27,17 @@
                collect (internks item)
         else collect item))
 
+(defun make-plist (keys list)
+  (loop for i in keys
+        for j in list
+        collect i
+        collect j))
+
 (defun pack-with (keys values)
-  (loop for item in values
-        collect (loop for i in keys
-                      for j in item
-                      collect i
-                      collect j)))
+  (if (atom (car values))
+      (make-plist keys values)
+      (loop for list in values
+            collect (make-plist keys list))))
 
 (defun pack-to-json (keys values)
   (jonathan:to-json (intern-list (pack-with keys values))))
